@@ -1,5 +1,5 @@
 # Tool versions for this starter. rust stays on stable and node on LTS as specified
-# in docs/PLAN.md. Other tools are pinned to versions current on 2026-09-12.
+# Rust stays on stable and node on LTS. Other tools are pinned to versions current on 2026-09-12.
 
 [tools]
 rust = "stable"
