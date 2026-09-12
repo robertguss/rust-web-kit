@@ -1,0 +1,39 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE auth_tokens\n        SET used_at = now()\n        WHERE token_hash = $1\n          AND kind = $2\n          AND used_at IS NULL\n          AND expires_at > now()\n        RETURNING user_id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "auth_tokens",
+            "name": "user_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        {
+          "Custom": {
+            "name": "auth_token_kind",
+            "kind": {
+              "Enum": [
+                "email_verify",
+                "password_reset"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "630487fd35c3158d0c9cc308bef50ca16364dc2c5694f0bfba068812f11a0ed3"
+}

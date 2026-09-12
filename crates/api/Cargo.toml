@@ -13,6 +13,10 @@ workspace = true
 default = []
 otel = ["rwk-core/otel"]
 
+[lib]
+name = "rwk_api"
+path = "src/lib.rs"
+
 [[bin]]
 name = "rwk-api"
 path = "src/main.rs"
@@ -20,8 +24,23 @@ path = "src/main.rs"
 [dependencies]
 anyhow.workspace = true
 axum.workspace = true
+garde.workspace = true
 rwk-core.workspace = true
 serde.workspace = true
+serde_json.workspace = true
+time.workspace = true
 tokio.workspace = true
+tower.workspace = true
 tower-http.workspace = true
+tower-sessions.workspace = true
+tower_governor.workspace = true
 tracing.workspace = true
+utoipa.workspace = true
+utoipa-axum.workspace = true
+utoipa-scalar.workspace = true
+
+[dev-dependencies]
+rwk-core.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+uuid.workspace = true

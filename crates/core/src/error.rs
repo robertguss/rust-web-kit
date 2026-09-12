@@ -6,6 +6,7 @@ use axum::Json;
 use axum::http::{HeaderValue, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use serde::Serialize;
+use utoipa::ToSchema;
 
 /// Application error. Internal details are logged, never sent to clients.
 #[derive(Debug, thiserror::Error)]
@@ -27,7 +28,7 @@ pub enum AppError {
 }
 
 /// RFC 9457 problem+json body.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct Problem {
     #[serde(rename = "type")]
     pub type_uri: &'static str,

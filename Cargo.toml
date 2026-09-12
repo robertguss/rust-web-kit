@@ -10,21 +10,35 @@ publish = false
 
 [workspace.dependencies]
 anyhow = "1.0.104"
+argon2 = { version = "0.6.0", features = ["password-hash"] }
+async-trait = "0.1.92"
 axum = "0.8.9"
+base64 = "0.22.1"
 chrono = { version = "0.4.45", features = ["serde"] }
 figment = { version = "0.10.19", features = ["env"] }
-garde = { version = "0.23.0", features = ["derive", "url"] }
+garde = { version = "0.23.0", features = ["derive", "url", "email"] }
+hex = "0.4.3"
 opentelemetry = { version = "0.32.0", default-features = false, features = ["trace"] }
 opentelemetry_sdk = { version = "0.32.1", default-features = false, features = ["trace"] }
 opentelemetry-otlp = { version = "0.32.0", default-features = false, features = ["trace", "http-proto", "reqwest-blocking-client"] }
+password-hash = { version = "0.6.1", features = ["rand_core", "alloc"] }
+rand = "0.10.2"
 rwk-core = { path = "crates/core" }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
+sha2 = "0.11.0"
 sqlx = { version = "0.9.0", features = ["postgres", "runtime-tokio", "tls-rustls", "macros", "migrate", "uuid", "chrono", "json"] }
 thiserror = "2.0.20"
+time = { version = "0.3.55", features = ["serde"] }
 tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "net", "time"] }
-tower-http = { version = "0.7.1", features = ["trace", "request-id", "util"] }
+tower = { version = "0.5.3", features = ["util"] }
+tower-http = { version = "0.7.1", features = ["trace", "request-id", "util", "cors", "compression-gzip", "timeout", "set-header"] }
+tower-sessions = "0.15.0"
+tower_governor = { version = "0.8.0", default-features = false, features = ["axum"] }
 tracing = "0.1.44"
+utoipa = { version = "5.5.0", features = ["axum_extras", "chrono", "uuid"] }
+utoipa-axum = "0.2.0"
+utoipa-scalar = { version = "0.3.0", features = ["axum"] }
 tracing-opentelemetry = "0.33.0"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt", "json"] }
 uuid = { version = "1.26.1", features = ["v4", "v7", "serde"] }

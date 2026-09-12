@@ -1,10 +1,13 @@
-//! Shared library for rwk: config, database, errors, telemetry, and app state.
+//! Shared library for rwk: config, database, errors, auth, users, telemetry.
 
+pub mod auth;
 pub mod config;
 pub mod db;
 pub mod error;
+pub mod mail;
 pub mod state;
 pub mod telemetry;
+pub mod users;
 
 pub use config::Config;
 pub use error::AppError;
