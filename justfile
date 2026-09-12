@@ -33,15 +33,21 @@ dev-web:
 
 # Start Postgres and Mailpit.
 db-up:
+    #!/usr/bin/env bash
+    set -euo pipefail
     docker compose up -d
-    @for i in $(seq 1 30); do \
-      if docker compose exec -T postgres pg_isready -U rwk -d rwk >/dev/null 2>&1; then \
-        docker compose exec -T postgres pg_isready -U rwk -d rwk; \
-        exit 0; \
-      fi; \
-      sleep 1; \
-    done; \
-    echo "postgres did not become ready"; \
+    # A first run initializes the cluster, which is slow on Docker Desktop.
+    for _ in $(seq 1 90); do
+      if docker compose exec -T postgres pg_isready -U rwk -d rwk >/dev/null 2>&1; then
+        docker compose exec -T postgres pg_isready -U rwk -d rwk
+        exit 0
+      fi
+      sleep 1
+    done
+    echo "postgres did not become ready; last 40 log lines:" >&2
+    docker compose logs --tail 40 postgres >&2
+    echo >&2
+    echo "If this volume was created by Postgres 17, remove it: docker compose down -v" >&2
     exit 1
 
 # Stop local data services.
