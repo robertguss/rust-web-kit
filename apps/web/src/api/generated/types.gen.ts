@@ -204,6 +204,61 @@ export type MeResponses = {
 
 export type MeResponse = MeResponses[keyof MeResponses];
 
+export type StartOauthData = {
+    body?: never;
+    path: {
+        /**
+         * google or github
+         */
+        provider: string;
+    };
+    query?: never;
+    url: '/auth/oauth/{provider}';
+};
+
+export type StartOauthErrors = {
+    /**
+     * Unknown or unconfigured provider
+     */
+    404: Problem;
+};
+
+export type StartOauthError = StartOauthErrors[keyof StartOauthErrors];
+
+export type OauthCallbackData = {
+    body?: never;
+    path: {
+        /**
+         * google or github
+         */
+        provider: string;
+    };
+    query?: {
+        /**
+         * Authorization code
+         */
+        code?: string;
+        /**
+         * CSRF state
+         */
+        state?: string;
+        /**
+         * Provider error
+         */
+        error?: string;
+    };
+    url: '/auth/oauth/{provider}/callback';
+};
+
+export type OauthCallbackErrors = {
+    /**
+     * Unknown or unconfigured provider
+     */
+    404: Problem;
+};
+
+export type OauthCallbackError = OauthCallbackErrors[keyof OauthCallbackErrors];
+
 export type RegisterData = {
     body: Credentials;
     path?: never;

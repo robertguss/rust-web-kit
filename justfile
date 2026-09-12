@@ -65,6 +65,23 @@ gen:
     cargo run -p rwk-api -- --export-openapi apps/web/openapi.json
     pnpm --dir apps/web exec openapi-ts
 
+# Fail if `just gen` would change the committed-on-disk client (git-independent).
+gen-check:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    hash_client() {
+      find apps/web/openapi.json apps/web/src/api/generated -type f | sort | xargs sha256sum | sha256sum
+    }
+    before=$(hash_client)
+    just gen
+    after=$(hash_client)
+    if [ "$before" != "$after" ]; then
+      echo "generated OpenAPI client is stale." >&2
+      echo "apps/web/openapi.json and apps/web/src/api/generated changed after 'just gen'." >&2
+      echo "Run 'just gen' and include those files." >&2
+      exit 1
+    fi
+
 # Format/lint/typecheck everything that exists in this phase.
 check:
     cargo fmt --all -- --check
@@ -72,8 +89,7 @@ check:
     pnpm --dir apps/web typecheck
     pnpm --dir apps/web lint
     cargo sqlx prepare --check --workspace -- --all-targets
-    just gen
-    git diff --exit-code -- apps/web/src/api/generated apps/web/openapi.json
+    just gen-check
 
 # Run API and web tests.
 test: test-api test-web
@@ -86,26 +102,65 @@ test-api:
 test-web:
     pnpm --dir apps/web test
 
-# Playwright smoke (Phase 7).
+# Playwright smoke against the API + built SPA (Postgres + Mailpit required).
 e2e:
-    @echo "TODO: just e2e (Phase 7)"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! curl -fsS --max-time 1 http://127.0.0.1:8025/api/v1/info >/dev/null 2>&1; then
+      just db-up
+    fi
+    pnpm --dir apps/web build
+    if [ -n "${CI:-}" ]; then
+      pnpm --dir apps/web exec playwright install --with-deps chromium
+    else
+      pnpm --dir apps/web exec playwright install chromium
+    fi
+    cargo build -p rwk-api
+    started_api=0
+    if ! curl -fsS --max-time 1 http://127.0.0.1:8080/api/health >/dev/null 2>&1; then
+      ./target/debug/rwk-api &
+      api_pid=$!
+      started_api=1
+      trap 'if [ "$started_api" = 1 ]; then kill "$api_pid" 2>/dev/null || true; fi' EXIT
+      for _ in $(seq 1 60); do
+        if curl -fsS --max-time 1 http://127.0.0.1:8080/api/health >/dev/null 2>&1; then
+          break
+        fi
+        if ! kill -0 "$api_pid" 2>/dev/null; then
+          echo "rwk-api exited before becoming healthy"
+          exit 1
+        fi
+        sleep 0.5
+      done
+      curl -fsS --max-time 1 http://127.0.0.1:8080/api/health >/dev/null
+    fi
+    pnpm --dir apps/web exec playwright test
 
-# Full CI pipeline (Phase 7).
+# Full CI pipeline.
 ci:
-    @echo "TODO: just ci (Phase 7)"
+    just check
+    just test
+    just e2e
+    just docker-build
 
 # Release-ish local build.
 build:
     cargo build --release -p rwk-api
     pnpm --dir apps/web build
 
-# Build the production image (Phase 7).
+# Build the production image.
 docker-build:
-    @echo "TODO: just docker-build (Phase 7)"
+    DOCKER_BUILDKIT=1 docker build -t rwk:latest .
 
-# Deploy the image to a VM over SSH (Phase 7).
+# Deploy the image to a VM over SSH.
 deploy HOST:
-    @echo "TODO: just deploy {{HOST}} (Phase 7)"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just docker-build
+    docker save rwk:latest | ssh {{HOST}} docker load
+    ssh {{HOST}} mkdir -p rwk
+    scp docker-compose.prod.yml fnox.toml {{HOST}}:rwk/
+    ssh {{HOST}} 'cd rwk && fnox exec -- docker compose -f docker-compose.prod.yml up -d'
 
 # Rename the placeholder `rwk` project (Phase 8).
 init NAME:

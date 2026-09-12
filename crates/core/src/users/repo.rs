@@ -31,6 +31,31 @@ where
     .await
 }
 
+/// Insert an OAuth-only user with a verified email and no password.
+pub async fn create_oauth<'e, E>(
+    executor: E,
+    email: &str,
+    verified_at: DateTime<Utc>,
+) -> Result<User, sqlx::Error>
+where
+    E: Executor<'e, Database = Postgres>,
+{
+    let id = Uuid::now_v7();
+    sqlx::query_as!(
+        User,
+        r#"
+        INSERT INTO users (id, email, password_hash, email_verified_at)
+        VALUES ($1, $2, NULL, $3)
+        RETURNING id, email, password_hash, email_verified_at, created_at, updated_at
+        "#,
+        id,
+        email,
+        verified_at,
+    )
+    .fetch_one(executor)
+    .await
+}
+
 /// Look up by citext email.
 pub async fn find_by_email(pool: &PgPool, email: &str) -> Result<Option<User>, sqlx::Error> {
     sqlx::query_as!(

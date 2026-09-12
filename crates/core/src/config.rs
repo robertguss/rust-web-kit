@@ -100,6 +100,24 @@ pub struct OauthConfig {
     pub github_client_secret: Option<String>,
 }
 
+impl OauthConfig {
+    /// Google is enabled only when both client id and secret are set.
+    pub fn google(&self) -> Option<(&str, &str)> {
+        Some((
+            self.google_client_id.as_deref()?,
+            self.google_client_secret.as_deref()?,
+        ))
+    }
+
+    /// GitHub is enabled only when both client id and secret are set.
+    pub fn github(&self) -> Option<(&str, &str)> {
+        Some((
+            self.github_client_id.as_deref()?,
+            self.github_client_secret.as_deref()?,
+        ))
+    }
+}
+
 /// Tracing formatter selected by `RWK_LOG_FORMAT`.
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]

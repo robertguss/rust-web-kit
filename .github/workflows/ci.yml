@@ -1,0 +1,38 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgres://rwk:rwk@localhost:5432/rwk
+      RWK_DATABASE__URL: postgres://rwk:rwk@localhost:5432/rwk
+      CI: true
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: rwk
+          POSTGRES_USER: rwk
+          POSTGRES_PASSWORD: rwk
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rwk -d rwk"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      mailpit:
+        image: axllent/mailpit
+        ports:
+          - 8025:8025
+          - 1025:1025
+    steps:
+      - uses: actions/checkout@v6
+      - uses: jdx/mise-action@v4
+      - run: pnpm --dir apps/web install --frozen-lockfile
+      - run: just ci

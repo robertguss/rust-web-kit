@@ -1,0 +1,67 @@
+# Production compose: app image + Postgres on a single VM.
+#
+# Inject secrets with fnox (do not commit values):
+#   fnox exec -- docker compose -f docker-compose.prod.yml up -d
+#
+# exe.dev HTTPS proxy (https://exe.dev/docs/proxy.md):
+#   The image EXPOSE 8080, so the proxy should target 8080 (smallest exposed
+#   TCP port >= 1024; there is no port 80). Pin it with:
+#     ssh exe.dev share port <vmname> 8080
+#   Private by default. Public:
+#     ssh exe.dev share set-public <vmname>
+#   Proxied requests include X-Forwarded-Proto, X-Forwarded-Host, X-Forwarded-For.
+#   Set RWK_APP_URL to the public https://<vm>.exe.xyz origin so OAuth redirects
+#   and email links match.
+#
+# Required env: RWK_SESSION__SECRET (must not be the development default).
+
+name: rwk-prod
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: rwk
+      POSTGRES_USER: rwk
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rwk}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rwk -d rwk"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  app:
+    image: rwk:latest
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      RWK_ENV: production
+      RWK_LOG_FORMAT: json
+      RWK_APP_URL: ${RWK_APP_URL:-http://localhost:8080}
+      RWK_DATABASE__URL: postgres://rwk:${POSTGRES_PASSWORD:-rwk}@postgres:5432/rwk
+      RWK_SESSION__SECRET: ${RWK_SESSION__SECRET:?set RWK_SESSION__SECRET}
+      RWK_SESSION__COOKIE_NAME: ${RWK_SESSION__COOKIE_NAME:-rwk_session}
+      RWK_RUN_MIGRATIONS: "true"
+      RWK_SERVER__HOST: 0.0.0.0
+      RWK_SERVER__PORT: "8080"
+      RWK_SERVER__STATIC_DIR: /app/www
+      RWK_MAIL__FROM: ${RWK_MAIL__FROM:-noreply@localhost}
+      RWK_MAIL__SMTP_HOST: ${RWK_MAIL__SMTP_HOST:-localhost}
+      RWK_MAIL__SMTP_PORT: ${RWK_MAIL__SMTP_PORT:-1025}
+      RWK_MAIL__SMTP_USERNAME: ${RWK_MAIL__SMTP_USERNAME:-}
+      RWK_MAIL__SMTP_PASSWORD: ${RWK_MAIL__SMTP_PASSWORD:-}
+      RWK_OAUTH__GOOGLE_CLIENT_ID: ${RWK_OAUTH__GOOGLE_CLIENT_ID:-}
+      RWK_OAUTH__GOOGLE_CLIENT_SECRET: ${RWK_OAUTH__GOOGLE_CLIENT_SECRET:-}
+      RWK_OAUTH__GITHUB_CLIENT_ID: ${RWK_OAUTH__GITHUB_CLIENT_ID:-}
+      RWK_OAUTH__GITHUB_CLIENT_SECRET: ${RWK_OAUTH__GITHUB_CLIENT_SECRET:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

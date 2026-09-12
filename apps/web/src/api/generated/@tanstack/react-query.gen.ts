@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { createProject, deleteProject, forgotPassword, getProject, health, listProjects, login, logout, me, type Options, register, resetPassword, updateProject, verifyEmail } from '../sdk.gen';
-import type { CreateProjectData, CreateProjectError, CreateProjectResponse, DeleteProjectData, DeleteProjectError, DeleteProjectResponse, ForgotPasswordData, ForgotPasswordResponse, GetProjectData, GetProjectError, GetProjectResponse, HealthData, HealthError, HealthResponse, ListProjectsData, ListProjectsError, ListProjectsResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, MeData, MeError, MeResponse, RegisterData, RegisterError, RegisterResponse, ResetPasswordData, ResetPasswordError, ResetPasswordResponse, UpdateProjectData, UpdateProjectError, UpdateProjectResponse, VerifyEmailData, VerifyEmailError, VerifyEmailResponse } from '../types.gen';
+import { createProject, deleteProject, forgotPassword, getProject, health, listProjects, login, logout, me, oauthCallback, type Options, register, resetPassword, startOauth, updateProject, verifyEmail } from '../sdk.gen';
+import type { CreateProjectData, CreateProjectError, CreateProjectResponse, DeleteProjectData, DeleteProjectError, DeleteProjectResponse, ForgotPasswordData, ForgotPasswordResponse, GetProjectData, GetProjectError, GetProjectResponse, HealthData, HealthError, HealthResponse, ListProjectsData, ListProjectsError, ListProjectsResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, MeData, MeError, MeResponse, OauthCallbackData, OauthCallbackError, RegisterData, RegisterError, RegisterResponse, ResetPasswordData, ResetPasswordError, ResetPasswordResponse, StartOauthData, StartOauthError, UpdateProjectData, UpdateProjectError, UpdateProjectResponse, VerifyEmailData, VerifyEmailError, VerifyEmailResponse } from '../types.gen';
 
 /**
  * Always 204. Sends a reset link when the email exists.
@@ -106,6 +106,42 @@ export const meOptions = (options?: Options<MeData>) => queryOptions<MeResponse,
         return data;
     },
     queryKey: meQueryKey(options)
+});
+
+export const startOauthQueryKey = (options: Options<StartOauthData>) => createQueryKey('startOauth', options);
+
+/**
+ * Redirect to the provider authorize URL (PKCE + state in the session).
+ */
+export const startOauthOptions = (options: Options<StartOauthData>) => queryOptions<unknown, StartOauthError, unknown, ReturnType<typeof startOauthQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await startOauth({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: startOauthQueryKey(options)
+});
+
+export const oauthCallbackQueryKey = (options: Options<OauthCallbackData>) => createQueryKey('oauthCallback', options);
+
+/**
+ * Exchange the authorization code, log the user in, redirect into the app.
+ */
+export const oauthCallbackOptions = (options: Options<OauthCallbackData>) => queryOptions<unknown, OauthCallbackError, unknown, ReturnType<typeof oauthCallbackQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await oauthCallback({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: oauthCallbackQueryKey(options)
 });
 
 /**

@@ -35,6 +35,7 @@ use crate::dto::{
 use crate::middleware::origin_check;
 use crate::routes::auth;
 use crate::routes::health::{self, Health};
+use crate::routes::oauth;
 use crate::routes::projects;
 
 /// Combined API document assembled from annotated handlers.
@@ -46,7 +47,7 @@ use crate::routes::projects;
     info(title = "rwk", version = "0.1.0"),
     servers((url = "/api", description = "rwk HTTP API")),
     tags(
-        (name = "auth", description = "Password authentication"),
+        (name = "auth", description = "Password and OAuth authentication"),
         (name = "health", description = "Liveness"),
         (name = "projects", description = "Owner-scoped projects"),
     ),
@@ -165,7 +166,9 @@ fn auth_router(env: Environment) -> OpenApiRouter<AppState> {
         .routes(routes!(auth::me))
         .routes(routes!(auth::verify_email))
         .routes(routes!(auth::forgot_password))
-        .routes(routes!(auth::reset_password));
+        .routes(routes!(auth::reset_password))
+        .routes(routes!(oauth::start_oauth))
+        .routes(routes!(oauth::oauth_callback));
 
     if env == Environment::Test {
         return router;

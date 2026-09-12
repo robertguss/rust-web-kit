@@ -11,9 +11,10 @@ use uuid::Uuid;
 #[sqlx::test(migrations = "../../migrations")]
 async fn spa_fallback_and_assets(pool: PgPool) {
     let dir = std::env::temp_dir().join(format!("rwk-spa-{}", Uuid::now_v7()));
-    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::create_dir_all(dir.join("assets")).unwrap();
     std::fs::write(dir.join("index.html"), b"<html><body>rwk-spa</body></html>").unwrap();
     std::fs::write(dir.join("ok.txt"), b"asset-ok").unwrap();
+    std::fs::write(dir.join("assets").join("app.js"), b"console.log(1)").unwrap();
 
     let mut config = Config::for_tests();
     config.server.static_dir = dir.to_string_lossy().into_owned();
@@ -31,6 +32,18 @@ async fn spa_fallback_and_assets(pool: PgPool) {
     let asset = client.get("/ok.txt").await;
     assert_eq!(asset.status, StatusCode::OK);
     assert_eq!(asset.text(), "asset-ok");
+
+    let hashed = client.get("/assets/app.js").await;
+    assert_eq!(hashed.status, StatusCode::OK);
+    assert_eq!(hashed.text(), "console.log(1)");
+
+    let missing_asset = client.get("/assets/missing.js").await;
+    assert_eq!(missing_asset.status, StatusCode::NOT_FOUND);
+    assert!(
+        !missing_asset.text().contains("rwk-spa"),
+        "hashed assets must not fall back to index.html: {}",
+        missing_asset.text()
+    );
 
     let health = client.get("/api/health").await;
     assert_eq!(health.status, StatusCode::OK);

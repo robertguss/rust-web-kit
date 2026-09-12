@@ -12,7 +12,9 @@
       "!node_modules",
       "!src/api/generated",
       "!src/routeTree.gen.ts",
-      "!openapi.json"
+      "!openapi.json",
+      "!test-results",
+      "!playwright-report"
     ]
   },
   "formatter": {

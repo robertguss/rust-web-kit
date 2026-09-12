@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { CreateProjectData, CreateProjectErrors, CreateProjectResponses, DeleteProjectData, DeleteProjectErrors, DeleteProjectResponses, ForgotPasswordData, ForgotPasswordResponses, GetProjectData, GetProjectErrors, GetProjectResponses, HealthData, HealthErrors, HealthResponses, ListProjectsData, ListProjectsErrors, ListProjectsResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, MeData, MeErrors, MeResponses, RegisterData, RegisterErrors, RegisterResponses, ResetPasswordData, ResetPasswordErrors, ResetPasswordResponses, UpdateProjectData, UpdateProjectErrors, UpdateProjectResponses, VerifyEmailData, VerifyEmailErrors, VerifyEmailResponses } from './types.gen';
+import type { CreateProjectData, CreateProjectErrors, CreateProjectResponses, DeleteProjectData, DeleteProjectErrors, DeleteProjectResponses, ForgotPasswordData, ForgotPasswordResponses, GetProjectData, GetProjectErrors, GetProjectResponses, HealthData, HealthErrors, HealthResponses, ListProjectsData, ListProjectsErrors, ListProjectsResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, MeData, MeErrors, MeResponses, OauthCallbackData, OauthCallbackErrors, RegisterData, RegisterErrors, RegisterResponses, ResetPasswordData, ResetPasswordErrors, ResetPasswordResponses, StartOauthData, StartOauthErrors, UpdateProjectData, UpdateProjectErrors, UpdateProjectResponses, VerifyEmailData, VerifyEmailErrors, VerifyEmailResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -51,6 +51,16 @@ export const logout = <ThrowOnError extends boolean = false>(options?: Options<L
  * Current user from the session cookie.
  */
 export const me = <ThrowOnError extends boolean = false>(options?: Options<MeData, ThrowOnError>): RequestResult<MeResponses, MeErrors, ThrowOnError> => (options?.client ?? client).get<MeResponses, MeErrors, ThrowOnError>({ url: '/auth/me', ...options });
+
+/**
+ * Redirect to the provider authorize URL (PKCE + state in the session).
+ */
+export const startOauth = <ThrowOnError extends boolean = false>(options: Options<StartOauthData, ThrowOnError>): RequestResult<unknown, StartOauthErrors, ThrowOnError> => (options.client ?? client).get<unknown, StartOauthErrors, ThrowOnError>({ url: '/auth/oauth/{provider}', ...options });
+
+/**
+ * Exchange the authorization code, log the user in, redirect into the app.
+ */
+export const oauthCallback = <ThrowOnError extends boolean = false>(options: Options<OauthCallbackData, ThrowOnError>): RequestResult<unknown, OauthCallbackErrors, ThrowOnError> => (options.client ?? client).get<unknown, OauthCallbackErrors, ThrowOnError>({ url: '/auth/oauth/{provider}/callback', ...options });
 
 /**
  * Register and start a session.
