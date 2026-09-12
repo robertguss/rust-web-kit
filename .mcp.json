@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "openapi": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@ivotoby/openapi-mcp-server",
+        "--openapi-spec",
+        "apps/web/openapi.json",
+        "--api-base-url",
+        "http://localhost:8080/api"
+      ]
+    },
+    "postgres": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://rwk:rwk@localhost:5432/rwk"
+      ]
+    }
+  }
+}

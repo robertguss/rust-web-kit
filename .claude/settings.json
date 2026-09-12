@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 15,
+            "command": "file=$(jq -r '.tool_input.file_path // .tool_input.filePath // empty'); [ -n \"$file\" ] || exit 0; exec bash .claude/hooks/post-tool-use.sh \"$file\""
+          }
+        ]
+      }
+    ]
+  }
+}

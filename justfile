@@ -162,9 +162,9 @@ deploy HOST:
     scp docker-compose.prod.yml fnox.toml {{HOST}}:rwk/
     ssh {{HOST}} 'cd rwk && fnox exec -- docker compose -f docker-compose.prod.yml up -d'
 
-# Rename the placeholder `rwk` project (Phase 8).
+# Rename the placeholder `rwk` project. Deletes this recipe.
 init NAME:
-    @echo "TODO: just init {{NAME}} (Phase 8)"
+    ./scripts/init.sh {{NAME}}
 
 # Remove build artifacts.
 clean:
