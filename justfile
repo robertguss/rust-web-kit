@@ -55,9 +55,10 @@ migrate-new NAME:
 sqlx-prepare:
     cargo sqlx prepare --workspace -- --all-targets
 
-# Export OpenAPI and generate the TS client (Phase 4).
+# Export OpenAPI and generate the TS client.
 gen:
-    @echo "TODO: just gen (Phase 4)"
+    cargo run -p rwk-api -- --export-openapi apps/web/openapi.json
+    pnpm --dir apps/web exec openapi-ts
 
 # Format/lint/typecheck everything that exists in this phase.
 check:
@@ -66,6 +67,8 @@ check:
     pnpm --dir apps/web typecheck
     pnpm --dir apps/web lint
     cargo sqlx prepare --check --workspace -- --all-targets
+    just gen
+    git diff --exit-code -- apps/web/src/api apps/web/openapi.json
 
 # Run API and web tests.
 test: test-api test-web

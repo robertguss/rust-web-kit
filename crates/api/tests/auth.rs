@@ -197,8 +197,11 @@ async fn openapi_and_docs_exist(pool: PgPool) {
     let spec = client.get("/api/openapi.json").await;
     assert_eq!(spec.status, StatusCode::OK);
     assert!(
-        spec.json()["paths"]["/api/auth/register"].is_object()
-            || spec.json()["paths"]["/register"].is_object()
+        spec.json()["paths"]["/auth/register"].is_object(),
+        "OpenAPI paths are relative to /api; got keys {:?}",
+        spec.json()["paths"]
+            .as_object()
+            .map(|paths| paths.keys().cloned().collect::<Vec<_>>())
     );
     let docs = client.get("/docs").await;
     assert_eq!(docs.status, StatusCode::OK);

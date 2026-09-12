@@ -1,4 +1,5 @@
 //! Shared integration-test helper: test app + cookie-aware client.
+#![allow(dead_code)]
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -118,6 +119,16 @@ impl TestClient {
 
     pub async fn get(&mut self, path: &str) -> TestResponse {
         self.request("GET", path, None).await
+    }
+
+    #[allow(dead_code)]
+    pub async fn patch_json(&mut self, path: &str, body: serde_json::Value) -> TestResponse {
+        self.request("PATCH", path, Some(body)).await
+    }
+
+    #[allow(dead_code)]
+    pub async fn delete(&mut self, path: &str) -> TestResponse {
+        self.request("DELETE", path, None).await
     }
 
     pub fn cookie(&self, name: &str) -> Option<&str> {

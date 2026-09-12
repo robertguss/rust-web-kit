@@ -24,6 +24,7 @@ path = "src/main.rs"
 [dependencies]
 anyhow.workspace = true
 axum.workspace = true
+clap.workspace = true
 garde.workspace = true
 rwk-core.workspace = true
 serde.workspace = true
@@ -38,6 +39,7 @@ tracing.workspace = true
 utoipa.workspace = true
 utoipa-axum.workspace = true
 utoipa-scalar.workspace = true
+uuid.workspace = true
 
 [dev-dependencies]
 rwk-core.workspace = true

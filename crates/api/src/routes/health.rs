@@ -18,7 +18,7 @@ pub struct Health {
 /// 200 when the db ping succeeds; 503 when it fails. JSON body is always returned.
 #[utoipa::path(
     get,
-    path = "/api/health",
+    path = "/health",
     tag = "health",
     responses(
         (status = 200, description = "Healthy", body = Health),

@@ -11,6 +11,7 @@ use rwk_core::AppState;
 use rwk_core::auth::PostgresSessionStore;
 use rwk_core::config::Environment;
 use rwk_core::error::Problem;
+use rwk_core::projects::{Project, ProjectPage};
 use rwk_core::users::UserResponse;
 use time::Duration as TimeDuration;
 use tower_governor::GovernorLayer;
@@ -28,22 +29,31 @@ use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
 use utoipa_scalar::{Scalar, Servable};
 
-use crate::dto::{Credentials, EmailBody, ResetPasswordBody, TokenBody};
+use crate::dto::{
+    CreateProject, Credentials, EmailBody, PageQuery, ResetPasswordBody, TokenBody, UpdateProject,
+};
 use crate::middleware::origin_check;
 use crate::routes::auth;
 use crate::routes::health::{self, Health};
+use crate::routes::projects;
 
 /// Combined API document assembled from annotated handlers.
+///
+/// Paths are relative to the `/api` mount (and the spec `servers` URL) so
+/// generated clients can use `baseUrl: '/api'`.
 #[derive(OpenApi)]
 #[openapi(
     info(title = "rwk", version = "0.1.0"),
+    servers((url = "/api", description = "rwk HTTP API")),
     tags(
         (name = "auth", description = "Password authentication"),
         (name = "health", description = "Liveness"),
+        (name = "projects", description = "Owner-scoped projects"),
     ),
     components(schemas(
-        UserResponse, Problem, Health,
-        Credentials, EmailBody, TokenBody, ResetPasswordBody
+        UserResponse, Problem, Health, Project, ProjectPage,
+        Credentials, EmailBody, TokenBody, ResetPasswordBody,
+        PageQuery, CreateProject, UpdateProject,
     ))
 )]
 pub struct ApiDoc;
@@ -65,24 +75,21 @@ pub fn app(state: AppState) -> Router {
         .with_secure(secure)
         .with_expiry(Expiry::OnInactivity(TimeDuration::days(14)));
 
-    let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
-        .routes(routes!(health::health))
-        .nest("/api/auth", auth_router(env))
-        .with_state(state)
-        .split_for_parts();
+    let (api_router, api) = api_spec_router(env).with_state(state).split_for_parts();
 
     let spec = Arc::new(api);
     let spec_for_json = Arc::clone(&spec);
+    let api_router = api_router.route(
+        "/openapi.json",
+        get(move || {
+            let spec = Arc::clone(&spec_for_json);
+            async move { Json((*spec).clone()) }
+        }),
+    );
 
-    router
+    Router::new()
+        .nest("/api", api_router)
         .merge(Scalar::with_url("/docs", (*spec).clone()))
-        .route(
-            "/api/openapi.json",
-            get(move || {
-                let spec = Arc::clone(&spec_for_json);
-                async move { Json((*spec).clone()) }
-            }),
-        )
         .layer(axum::middleware::from_fn_with_state(
             origin_state,
             origin_check,
@@ -138,6 +145,14 @@ pub fn app(state: AppState) -> Router {
         ))
 }
 
+/// Spec paths without the `/api` prefix. The HTTP router nests this at `/api`.
+fn api_spec_router(env: Environment) -> OpenApiRouter<AppState> {
+    OpenApiRouter::with_openapi(ApiDoc::openapi())
+        .routes(routes!(health::health))
+        .nest("/auth", auth_router(env))
+        .nest("/projects", projects_router())
+}
+
 fn auth_router(env: Environment) -> OpenApiRouter<AppState> {
     let router = OpenApiRouter::new()
         .routes(routes!(auth::register))
@@ -160,7 +175,16 @@ fn auth_router(env: Environment) -> OpenApiRouter<AppState> {
     router.layer(GovernorLayer::new(governor))
 }
 
-/// Combined API spec for later `--export-openapi` use.
+fn projects_router() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(projects::list_projects))
+        .routes(routes!(projects::create_project))
+        .routes(routes!(projects::get_project))
+        .routes(routes!(projects::update_project))
+        .routes(routes!(projects::delete_project))
+}
+
+/// Combined API spec for `--export-openapi` (no database required).
 pub fn openapi() -> utoipa::openapi::OpenApi {
-    ApiDoc::openapi()
+    api_spec_router(Environment::Test).into_openapi()
 }
