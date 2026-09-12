@@ -5,6 +5,17 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>rwk</title>
+    <script>
+      (() => {
+        const key = "rwk-theme";
+        const stored = localStorage.getItem(key);
+        const dark =
+          stored === "dark" ||
+          ((stored === null || stored === "system") &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches);
+        if (dark) document.documentElement.classList.add("dark");
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

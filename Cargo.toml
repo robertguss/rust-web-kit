@@ -35,7 +35,7 @@ thiserror = "2.0.20"
 time = { version = "0.3.55", features = ["serde"] }
 tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "net", "time"] }
 tower = { version = "0.5.3", features = ["util"] }
-tower-http = { version = "0.7.1", features = ["trace", "request-id", "util", "cors", "compression-gzip", "timeout", "set-header"] }
+tower-http = { version = "0.7.1", features = ["trace", "request-id", "util", "cors", "compression-gzip", "timeout", "set-header", "fs"] }
 tower-sessions = "0.15.0"
 tower_governor = { version = "0.8.0", default-features = false, features = ["axum"] }
 tracing = "0.1.44"

@@ -23,7 +23,10 @@ pub struct TestApp {
 
 impl TestApp {
     pub fn new(pool: PgPool) -> Self {
-        let config = Config::for_tests();
+        Self::with_config(pool, Config::for_tests())
+    }
+
+    pub fn with_config(pool: PgPool, config: Config) -> Self {
         let mail = RecordingMailer::new();
         let state = AppState::new(config, pool.clone(), Arc::new(mail.clone()));
         Self {

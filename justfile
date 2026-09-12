@@ -14,9 +14,14 @@ setup:
     pnpm --dir apps/web install
     hk install
 
-# Start API + web together (Phase 6).
+# Start API + Vite together.
 dev:
-    @echo "TODO: just dev (Phase 6)"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    trap 'kill 0' EXIT
+    just dev-api &
+    just dev-web &
+    wait
 
 # Run the API on :8080.
 dev-api:
@@ -68,7 +73,7 @@ check:
     pnpm --dir apps/web lint
     cargo sqlx prepare --check --workspace -- --all-targets
     just gen
-    git diff --exit-code -- apps/web/src/api apps/web/openapi.json
+    git diff --exit-code -- apps/web/src/api/generated apps/web/openapi.json
 
 # Run API and web tests.
 test: test-api test-web
@@ -77,9 +82,9 @@ test: test-api test-web
 test-api:
     cargo nextest run --workspace
 
-# Frontend unit tests (Phase 6).
+# Frontend unit tests.
 test-web:
-    @echo "TODO: just test-web (Phase 6)"
+    pnpm --dir apps/web test
 
 # Playwright smoke (Phase 7).
 e2e:

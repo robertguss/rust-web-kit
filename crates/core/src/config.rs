@@ -44,13 +44,16 @@ pub struct Config {
     pub run_migrations: bool,
 }
 
-/// HTTP bind address.
+/// HTTP bind address and optional SPA static directory.
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct ServerConfig {
     #[garde(length(min = 1))]
     pub host: String,
     #[garde(range(min = 1))]
     pub port: u16,
+    /// Directory of the Vite `dist` output. Served with SPA fallback.
+    #[garde(length(min = 1))]
+    pub static_dir: String,
 }
 
 /// Postgres connection.
@@ -138,6 +141,7 @@ impl Default for Config {
             server: ServerConfig {
                 host: "0.0.0.0".into(),
                 port: 8080,
+                static_dir: "apps/web/dist".into(),
             },
             database: DatabaseConfig {
                 url: "postgres://rwk:rwk@localhost:5432/rwk".into(),
