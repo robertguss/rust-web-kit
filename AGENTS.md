@@ -38,7 +38,7 @@ Read `docs/slices/projects.md` before adding a CRUD resource. Read `docs/slices/
 | `test` / `test-api` / `test-web` | nextest + Vitest |
 | `e2e` | Playwright smoke (Postgres + Mailpit) |
 | `ci` | `check` + `test` + `e2e` + `docker-build` |
-| `build` / `docker-build` / `deploy HOST` | release binary, image, SSH deploy |
+| `build` / `docker-build` / `deploy HOST [PLATFORM]` | release binary, image, SSH deploy (defaults to `linux/amd64`) |
 | `init NAME` | one-shot rename (deletes itself) |
 
 Run `just check` before declaring work done. Run `just ci` before a PR.

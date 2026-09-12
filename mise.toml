@@ -11,4 +11,3 @@ age = "1.3.2"
 # rustls so install does not require OpenSSL headers (default features pull openssl-sys).
 "cargo:sqlx-cli" = { version = "0.9.0", default-features = false, features = ["postgres", "rustls"] }
 "cargo:cargo-nextest" = "0.9.144"
-"cargo:bacon" = "3.25.0"

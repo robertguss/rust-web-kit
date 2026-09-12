@@ -148,15 +148,16 @@ build:
     cargo build --release -p rwk-api
     pnpm --dir apps/web build
 
-# Build the production image.
+# Build the production image for the local architecture.
 docker-build:
     DOCKER_BUILDKIT=1 docker build -t rwk:latest .
 
-# Deploy the image to a VM over SSH.
-deploy HOST:
+# Deploy the image to a VM over SSH. PLATFORM must match the VM's
+# architecture, not your laptop's (Apple Silicon builds arm64 by default).
+deploy HOST PLATFORM="linux/amd64":
     #!/usr/bin/env bash
     set -euo pipefail
-    just docker-build
+    DOCKER_BUILDKIT=1 docker build --platform {{PLATFORM}} -t rwk:latest .
     docker save rwk:latest | ssh {{HOST}} docker load
     ssh {{HOST}} mkdir -p rwk
     scp docker-compose.prod.yml fnox.toml {{HOST}}:rwk/

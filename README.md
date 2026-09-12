@@ -79,6 +79,8 @@ just docker-build
 just deploy user@host
 ```
 
+`just deploy` builds for `linux/amd64` by default, because most VMs are x86 while Apple Silicon builds arm64 natively. Pass a second argument for an arm VM: `just deploy user@host linux/arm64`.
+
 Production compose is `docker-compose.prod.yml` (app + Postgres). Inject secrets with `fnox exec -- docker compose -f docker-compose.prod.yml up -d`. Required: `RWK_SESSION__SECRET` (not the development default).
 
 The image listens on **8080**. On [exe.dev](https://exe.dev/docs/proxy.md), expose 8080 (`ssh exe.dev share port <vm> 8080`). Set `RWK_APP_URL` to the public `https://…` origin so OAuth redirects and email links match.
