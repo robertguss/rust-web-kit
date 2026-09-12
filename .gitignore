@@ -1,0 +1,40 @@
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock.bak
+
+# Node
+node_modules/
+apps/web/dist/
+apps/web/.vite/
+*.tsbuildinfo
+
+# Env and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+age.txt
+FNOX_AGE_KEY
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+*.swo
+
+# Test / coverage
+coverage/
+playwright-report/
+test-results/
+lcov.info
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Docker volumes (local)
+/data/

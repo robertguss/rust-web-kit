@@ -1,0 +1,28 @@
+[workspace]
+resolver = "3"
+members = ["crates/core", "crates/api"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+publish = false
+
+[workspace.dependencies]
+axum = "0.8.9"
+rwk-core = { path = "crates/core" }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "net"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
+
+# Clippy pedantic is on at warn so `cargo clippy -- -D warnings` fails the
+# build. The allow-list is for lints that fight Axum extractors, serde DTOs,
+# and small binaries rather than catching real issues.
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+module_name_repetitions = "allow"
+must_use_candidate = "allow"

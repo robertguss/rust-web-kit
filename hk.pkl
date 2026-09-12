@@ -1,0 +1,36 @@
+/// Git hooks for rwk.
+/// pre-commit: format/fix (cargo fmt, biome)
+/// pre-push: `just check` then `just test`
+amends "package://github.com/jdx/hk/releases/download/v1.58.1/hk@1.58.1#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v1.58.1/hk@1.58.1#/Builtins.pkl"
+
+local linters = new Mapping<String, Step> {
+  ["cargo-fmt"] = Builtins.cargo_fmt
+  ["biome"] = (Builtins.biome) {
+    exclude = List("**/node_modules/**", "**/dist/**")
+    // Builtins.biome uses structured argv; override so we can run via pnpm.
+    check = "pnpm --dir apps/web exec biome check --no-errors-on-unmatched {{files}}"
+    fix = "pnpm --dir apps/web exec biome check --write --no-errors-on-unmatched {{files}}"
+  }
+}
+
+hooks {
+  ["pre-commit"] {
+    fix = true
+    stash = "git"
+    steps = linters
+  }
+  ["pre-push"] {
+    steps {
+      ["check"] {
+        exclusive = true
+        check = "just check"
+      }
+      ["test"] {
+        exclusive = true
+        depends = List("check")
+        check = "just test"
+      }
+    }
+  }
+}

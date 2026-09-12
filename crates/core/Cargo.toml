@@ -1,0 +1,12 @@
+[package]
+name = "rwk-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Shared library for rwk: config, database, domain modules."
+
+[lints]
+workspace = true
+
+[dependencies]

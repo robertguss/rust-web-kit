@@ -1,0 +1,22 @@
+[package]
+name = "rwk-api"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Axum HTTP API binary for rwk."
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "rwk-api"
+path = "src/main.rs"
+
+[dependencies]
+axum.workspace = true
+rwk-core.workspace = true
+serde.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

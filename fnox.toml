@@ -1,0 +1,28 @@
+#:schema https://fnox.jdx.dev/schema.json
+
+# Secrets for rwk are encrypted with age and stored under [secrets].
+#
+# Setup:
+#   1. Generate an identity (keep this file out of git):
+#        mkdir -p ~/.config/fnox
+#        age-keygen -o ~/.config/fnox/age.txt
+#   2. Replace `recipients` below with your public key:
+#        age-keygen -y ~/.config/fnox/age.txt
+#   3. Encrypt values into this file:
+#        fnox set RWK_SESSION__SECRET --provider age
+#   4. Run commands with secrets injected:
+#        fnox exec -- just dev-api
+#
+# fnox reads the identity from ~/.config/fnox/age.txt or FNOX_AGE_KEY.
+# Never commit age.txt, FNOX_AGE_KEY, or plaintext secret values.
+
+default_provider = "age"
+
+[providers.age]
+type = "age"
+# Template placeholder public key. Replace with yours before `fnox set`.
+# This repo does not contain a matching private identity.
+recipients = ["age1u72zyk3h63268fu6aammng9ugjty77e4fqtm6rh8fqly3slr9a4s9gx9qk"]
+
+# Add secrets with `fnox set NAME --provider age`. Do not store plaintext here.
+[secrets]
