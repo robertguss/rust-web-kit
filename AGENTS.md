@@ -13,6 +13,7 @@ apps/web                   React 19 + Vite + TanStack Router/Query + shadcn/ui
 migrations/                SQLx (.sql)
 docs/slices/               copy-this feature walkthroughs (projects, auth)
 docs/decisions/            ADRs
+docs/going-live.md         owner checklist: secrets, SMTP, OAuth, deploy
 .claude/skills/            add-endpoint, add-migration, add-page, add-job, edit-hk-config
 ```
 

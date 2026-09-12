@@ -80,6 +80,12 @@ npx -y @modelcontextprotocol/server-postgres postgresql://rwk:rwk@localhost:5432
 
 The Postgres server is intended for read-only schema/SQL against the local dev database.
 
+## Going live
+
+Secrets, real SMTP, OAuth providers, and deployment all need credentials a
+repository cannot carry. [`docs/going-live.md`](docs/going-live.md) is the
+checklist. Start there before your first deploy.
+
 ## Deploy to a VM
 
 ```bash
