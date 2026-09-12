@@ -2,7 +2,17 @@
 set dotenv-load := false
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
-export DATABASE_URL := env("DATABASE_URL", "postgres://rwk:rwk@localhost:5432/rwk")
+# Host port for the dev Postgres. Override when 5432 is already taken:
+#   RWK_DB_PORT=5433 just db-up
+# Export it in your shell so every recipe and the app agree.
+export RWK_DB_PORT := env("RWK_DB_PORT", "5432")
+
+# 127.0.0.1, not localhost: localhost resolves to ::1 first on macOS, which
+# can reach a different Postgres than the one Docker published.
+export DATABASE_URL := env("DATABASE_URL", "postgres://rwk:rwk@127.0.0.1:" + RWK_DB_PORT + "/rwk")
+
+# The app reads RWK_DATABASE__URL; keep it in step with DATABASE_URL.
+export RWK_DATABASE__URL := DATABASE_URL
 
 # List recipes.
 default:
@@ -41,23 +51,42 @@ db-up:
     # between accepting and rejecting. Probe once per tick and require two
     # consecutive successes, so a transient reject does not end the wait.
     ok=0
+    ready=0
+    out=""
     for _ in $(seq 1 90); do
       if out=$(docker compose exec -T postgres pg_isready -U rwk -d rwk 2>&1); then
         ok=$((ok + 1))
         if [ "$ok" -ge 2 ]; then
-          echo "$out"
-          exit 0
+          ready=1
+          break
         fi
       else
         ok=0
       fi
       sleep 1
     done
-    echo "postgres did not become ready; last 40 log lines:" >&2
-    docker compose logs --tail 40 postgres >&2
-    echo >&2
-    echo "If this volume was created by Postgres 17, remove it: docker compose down -v" >&2
-    exit 1
+    if [ "$ready" != 1 ]; then
+      echo "postgres did not become ready; last 40 log lines:" >&2
+      docker compose logs --tail 40 postgres >&2
+      echo >&2
+      echo "If this volume was created by Postgres 17, remove it: docker compose down -v" >&2
+      exit 1
+    fi
+    echo "$out"
+    # pg_isready only proves the container answers on its own socket. Confirm
+    # DATABASE_URL actually reaches it, because another Postgres may already
+    # own the published port and will answer instead.
+    if ! sqlx migrate info --source migrations >/dev/null 2>&1; then
+      echo >&2
+      echo "The container is healthy, but $DATABASE_URL does not reach it." >&2
+      probed=${DATABASE_URL##*:}; probed=${probed%%/*}
+      echo "Another Postgres probably owns port $probed:" >&2
+      lsof -nP -iTCP:"$probed" -sTCP:LISTEN 2>/dev/null >&2 || true
+      echo >&2
+      echo "Pick a free port and export it, then re-run:" >&2
+      echo "  export RWK_DB_PORT=5433 && just db-up" >&2
+      exit 1
+    fi
 
 # Stop local data services.
 db-down:
@@ -100,7 +129,10 @@ gen-check:
 # Format/lint/typecheck everything that exists in this phase.
 check:
     cargo fmt --all -- --check
-    cargo clippy --all-targets -- -D warnings
+    # Offline, so a missing or unmigrated database cannot bury the real
+    # errors under one macro failure per query. A query with no cached entry
+    # says so plainly: run `just sqlx-prepare`.
+    SQLX_OFFLINE=true cargo clippy --all-targets -- -D warnings
     pnpm --dir apps/web typecheck
     pnpm --dir apps/web lint
     cargo sqlx prepare --check --workspace -- --all-targets

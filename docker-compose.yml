@@ -8,7 +8,8 @@ services:
       POSTGRES_USER: rwk
       POSTGRES_PASSWORD: rwk
     ports:
-      - "5432:5432"
+      # Override with RWK_DB_PORT when 5432 is already taken on the host.
+      - "${RWK_DB_PORT:-5432}:5432"
     volumes:
       # Postgres 18 stores data in /var/lib/postgresql/<major>/docker and
       # declares /var/lib/postgresql as the volume. Do not use the pre-18

@@ -21,6 +21,15 @@ just dev
 
 `just init NAME` rewrites `rwk` → `NAME` in file contents and paths, retitles this README, deletes the init script, and runs `git init` plus `mise install` / `pnpm` / `hk install`. Run it once, on a fresh copy.
 
+If port 5432 is already used by another Postgres on your machine, pick a free one. Export it so every recipe and the app agree.
+
+```bash
+export RWK_DB_PORT=5433
+just db-up
+```
+
+`just db-up` fails with the conflicting listener if `DATABASE_URL` reaches a Postgres other than the container.
+
 Health: `curl localhost:8080/api/health` → `{"status":"ok","db":"ok"}`.
 
 `just dev` runs the API on port 8080 and Vite on port 5173 (proxies `/api`). After `pnpm --dir apps/web build`, the API serves the SPA from `apps/web/dist`.
