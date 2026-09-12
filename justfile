@@ -87,6 +87,9 @@ db-up:
       echo "  export RWK_DB_PORT=5433 && just db-up" >&2
       exit 1
     fi
+    # Apply migrations here so a fresh clone can run `just check` and
+    # `just ci` without starting the app first.
+    just migrate
 
 # Stop local data services.
 db-down:
