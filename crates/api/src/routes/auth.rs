@@ -6,8 +6,8 @@ use axum::http::StatusCode;
 use garde::Validate;
 use rwk_core::AppError;
 use rwk_core::AppState;
-use rwk_core::auth::RequireAuth;
 use rwk_core::auth::service;
+use rwk_core::auth::{RequireAuth, RequireVerified};
 use rwk_core::error::Problem;
 use rwk_core::users::UserResponse;
 use tower_sessions::Session;
@@ -109,6 +109,31 @@ pub async fn verify_email(
     body.validate()?;
     service::verify_email(state.db(), &body.token).await?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// Resend the email-verification message for the current session.
+///
+/// Already-verified users get 204 and no mail. Unauthenticated is 401.
+#[utoipa::path(
+    post,
+    path = "/resend-verification",
+    tag = "auth",
+    responses(
+        (status = 204, description = "Verification email sent or already verified"),
+        (status = 401, description = "Not authenticated", body = Problem),
+    )
+)]
+pub async fn resend_verification(
+    State(state): State<AppState>,
+    RequireAuth(user): RequireAuth,
+) -> Result<StatusCode, AppError> {
+    service::resend_verification(state.db(), &state.config().app_url, &user).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// Integration-test probe for [`RequireVerified`]. Registered only in test.
+pub async fn require_verified_probe(RequireVerified(_user): RequireVerified) -> StatusCode {
+    StatusCode::OK
 }
 
 /// Always 204. Sends a reset link when the email exists.

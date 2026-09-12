@@ -284,6 +284,31 @@
         }
       }
     },
+    "/auth/resend-verification": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Resend the email-verification message for the current session.",
+        "description": "Already-verified users get 204 and no mail. Unauthenticated is 401.",
+        "operationId": "resend_verification",
+        "responses": {
+          "204": {
+            "description": "Verification email sent or already verified"
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/reset-password": {
       "post": {
         "tags": [

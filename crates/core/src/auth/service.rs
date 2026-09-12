@@ -1,4 +1,4 @@
-//! Register, login, verify-email, and password-reset flows.
+//! Register, login, verify-email (including resend), and password-reset flows.
 
 use chrono::Utc;
 use sqlx::PgPool;
@@ -77,6 +77,35 @@ pub async fn logout(session: &Session) -> Result<(), AppError> {
 pub async fn verify_email(pool: &PgPool, token: &str) -> Result<(), AppError> {
     let user_id = tokens::consume(pool, token, AuthTokenKind::EmailVerify).await?;
     repo::set_verified(pool, user_id, Utc::now()).await?;
+    Ok(())
+}
+
+/// Issue a fresh verify token and enqueue mail, or no-op if already verified.
+///
+/// Token insert and `SendEmail` share one transaction, matching [`register`].
+pub async fn resend_verification(
+    pool: &PgPool,
+    app_url: &str,
+    user: &User,
+) -> Result<(), AppError> {
+    if user.email_verified_at.is_some() {
+        return Ok(());
+    }
+    let mut tx = pool.begin().await?;
+    let token = tokens::issue(
+        &mut *tx,
+        user.id,
+        AuthTokenKind::EmailVerify,
+        tokens::verify_ttl(),
+    )
+    .await?;
+    let url = format!("{app_url}/verify-email?token={}", token.plaintext);
+    jobs::enqueue(
+        &mut *tx,
+        Job::send_email(user.email.clone(), EmailTemplate::VerifyEmail, url),
+    )
+    .await?;
+    tx.commit().await?;
     Ok(())
 }
 

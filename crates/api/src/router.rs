@@ -152,10 +152,15 @@ pub fn app(state: AppState) -> Router {
 
 /// Spec paths without the `/api` prefix. The HTTP router nests this at `/api`.
 fn api_spec_router(env: Environment) -> OpenApiRouter<AppState> {
-    OpenApiRouter::with_openapi(ApiDoc::openapi())
+    let mut router = OpenApiRouter::with_openapi(ApiDoc::openapi())
         .routes(routes!(health::health))
         .nest("/auth", auth_router(env))
-        .nest("/projects", projects_router())
+        .nest("/projects", projects_router());
+    if env == Environment::Test {
+        // Not annotated for OpenAPI; used by integration tests only.
+        router = router.route("/__test/verified", get(auth::require_verified_probe));
+    }
+    router
 }
 
 fn auth_router(env: Environment) -> OpenApiRouter<AppState> {
@@ -165,6 +170,7 @@ fn auth_router(env: Environment) -> OpenApiRouter<AppState> {
         .routes(routes!(auth::logout))
         .routes(routes!(auth::me))
         .routes(routes!(auth::verify_email))
+        .routes(routes!(auth::resend_verification))
         .routes(routes!(auth::forgot_password))
         .routes(routes!(auth::reset_password))
         .routes(routes!(oauth::start_oauth))

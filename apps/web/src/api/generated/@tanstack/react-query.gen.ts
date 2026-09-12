@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { createProject, deleteProject, forgotPassword, getProject, health, listProjects, login, logout, me, oauthCallback, type Options, register, resetPassword, startOauth, updateProject, verifyEmail } from '../sdk.gen';
-import type { CreateProjectData, CreateProjectError, CreateProjectResponse, DeleteProjectData, DeleteProjectError, DeleteProjectResponse, ForgotPasswordData, ForgotPasswordResponse, GetProjectData, GetProjectError, GetProjectResponse, HealthData, HealthError, HealthResponse, ListProjectsData, ListProjectsError, ListProjectsResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, MeData, MeError, MeResponse, OauthCallbackData, OauthCallbackError, RegisterData, RegisterError, RegisterResponse, ResetPasswordData, ResetPasswordError, ResetPasswordResponse, StartOauthData, StartOauthError, UpdateProjectData, UpdateProjectError, UpdateProjectResponse, VerifyEmailData, VerifyEmailError, VerifyEmailResponse } from '../types.gen';
+import { createProject, deleteProject, forgotPassword, getProject, health, listProjects, login, logout, me, oauthCallback, type Options, register, resendVerification, resetPassword, startOauth, updateProject, verifyEmail } from '../sdk.gen';
+import type { CreateProjectData, CreateProjectError, CreateProjectResponse, DeleteProjectData, DeleteProjectError, DeleteProjectResponse, ForgotPasswordData, ForgotPasswordResponse, GetProjectData, GetProjectError, GetProjectResponse, HealthData, HealthError, HealthResponse, ListProjectsData, ListProjectsError, ListProjectsResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, MeData, MeError, MeResponse, OauthCallbackData, OauthCallbackError, RegisterData, RegisterError, RegisterResponse, ResendVerificationData, ResendVerificationError, ResendVerificationResponse, ResetPasswordData, ResetPasswordError, ResetPasswordResponse, StartOauthData, StartOauthError, UpdateProjectData, UpdateProjectError, UpdateProjectResponse, VerifyEmailData, VerifyEmailError, VerifyEmailResponse } from '../types.gen';
 
 /**
  * Always 204. Sends a reset link when the email exists.
@@ -151,6 +151,25 @@ export const registerMutation = (options?: Partial<Options<RegisterData>>): UseM
     const mutationOptions: UseMutationOptions<RegisterResponse, RegisterError, Options<RegisterData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await register({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Resend the email-verification message for the current session.
+ *
+ * Already-verified users get 204 and no mail. Unauthenticated is 401.
+ */
+export const resendVerificationMutation = (options?: Partial<Options<ResendVerificationData>>): UseMutationOptions<ResendVerificationResponse, ResendVerificationError, Options<ResendVerificationData>> => {
+    const mutationOptions: UseMutationOptions<ResendVerificationResponse, ResendVerificationError, Options<ResendVerificationData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await resendVerification({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

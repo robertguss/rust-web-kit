@@ -17,6 +17,8 @@ pub enum AppError {
     Unauthorized,
     #[error("forbidden")]
     Forbidden,
+    #[error("email not verified")]
+    EmailNotVerified,
     #[error("validation failed")]
     Validation(garde::Report),
     #[error("conflict")]
@@ -73,6 +75,17 @@ impl AppError {
                     title: "Forbidden",
                     status: 403,
                     detail: "You are not allowed to perform this action.".into(),
+                    instance: None,
+                    errors: None,
+                },
+            ),
+            Self::EmailNotVerified => (
+                StatusCode::FORBIDDEN,
+                Problem {
+                    type_uri: "/problems/email-not-verified",
+                    title: "Email Not Verified",
+                    status: 403,
+                    detail: "Verify your email address to continue.".into(),
                     instance: None,
                     errors: None,
                 },
@@ -253,5 +266,29 @@ mod tests {
     async fn sqlx_row_not_found_maps_to_404() {
         let (status, _, _) = problem_json(AppError::from(sqlx::Error::RowNotFound)).await;
         assert_eq!(status, StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn email_not_verified_is_403_with_distinct_type() {
+        let (status, ct, body) = problem_json(AppError::EmailNotVerified).await;
+        assert_eq!(status, StatusCode::FORBIDDEN);
+        assert_eq!(ct, "application/problem+json");
+        assert_eq!(body["status"], 403);
+        assert_eq!(body["type"], "/problems/email-not-verified");
+        assert_eq!(body["title"], "Email Not Verified");
+    }
+
+    #[tokio::test]
+    async fn other_errors_keep_about_blank_type() {
+        for error in [
+            AppError::NotFound,
+            AppError::Unauthorized,
+            AppError::Forbidden,
+            AppError::Conflict,
+            AppError::BadRequest("nope".into()),
+        ] {
+            let (_, _, body) = problem_json(error).await;
+            assert_eq!(body["type"], "about:blank");
+        }
     }
 }

@@ -13,6 +13,23 @@ fn creds(email: &str) -> serde_json::Value {
     json!({ "email": email, "password": "password12" })
 }
 
+async fn job_count(pool: &PgPool) -> i64 {
+    sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM jobs")
+        .fetch_one(pool)
+        .await
+        .unwrap()
+}
+
+async fn email_verify_token_count(pool: &PgPool, user_id: Uuid) -> i64 {
+    sqlx::query_scalar::<_, i64>(
+        "SELECT COUNT(*) FROM auth_tokens WHERE user_id = $1 AND kind = 'email_verify'",
+    )
+    .bind(user_id)
+    .fetch_one(pool)
+    .await
+    .unwrap()
+}
+
 #[sqlx::test(migrations = "../../migrations")]
 async fn register_login_me_logout(pool: PgPool) {
     let app = TestApp::new(pool);
@@ -263,4 +280,107 @@ async fn login_cycles_session_cookie(pool: PgPool) {
         .cookie("rwk_session")
         .expect("logged-in session cookie");
     assert_ne!(before, after, "session id must rotate on login");
+}
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn require_verified_rejects_unverified(pool: PgPool) {
+    let app = TestApp::new(pool);
+    let mut client = app.client();
+    assert_eq!(
+        client
+            .post_json("/api/auth/register", creds("uv@example.com"))
+            .await
+            .status,
+        StatusCode::CREATED
+    );
+    let response = client.get("/api/__test/verified").await;
+    assert_eq!(response.status, StatusCode::FORBIDDEN);
+    assert_eq!(response.json()["type"], "/problems/email-not-verified");
+    assert_eq!(response.json()["title"], "Email Not Verified");
+    assert_eq!(
+        response.headers[axum::http::header::CONTENT_TYPE],
+        "application/problem+json"
+    );
+}
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn require_verified_allows_verified(pool: PgPool) {
+    let app = TestApp::new(pool.clone());
+    let mut client = app.client();
+    assert_eq!(
+        client
+            .post_json("/api/auth/register", creds("ok@example.com"))
+            .await
+            .status,
+        StatusCode::CREATED
+    );
+    let token = app.last_token("verify").await;
+    assert_eq!(
+        client
+            .post_json("/api/auth/verify-email", json!({ "token": token }))
+            .await
+            .status,
+        StatusCode::NO_CONTENT
+    );
+    let response = client.get("/api/__test/verified").await;
+    assert_eq!(response.status, StatusCode::OK);
+}
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn resend_verification_enqueues_one_job(pool: PgPool) {
+    let app = TestApp::new(pool.clone());
+    let mut client = app.client();
+    assert_eq!(
+        client
+            .post_json("/api/auth/register", creds("rs@example.com"))
+            .await
+            .status,
+        StatusCode::CREATED
+    );
+    let before = job_count(&pool).await;
+    let response = client
+        .post_json("/api/auth/resend-verification", json!({}))
+        .await;
+    assert_eq!(response.status, StatusCode::NO_CONTENT);
+    assert_eq!(job_count(&pool).await, before + 1);
+}
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn resend_verification_noop_when_already_verified(pool: PgPool) {
+    let app = TestApp::new(pool.clone());
+    let mut client = app.client();
+    let register = client
+        .post_json("/api/auth/register", creds("done@example.com"))
+        .await;
+    assert_eq!(register.status, StatusCode::CREATED);
+    let user_id: Uuid = serde_json::from_value(register.json()["id"].clone()).unwrap();
+    let token = app.last_token("verify").await;
+    assert_eq!(
+        client
+            .post_json("/api/auth/verify-email", json!({ "token": token }))
+            .await
+            .status,
+        StatusCode::NO_CONTENT
+    );
+    let jobs_before = job_count(&pool).await;
+    let tokens_before = email_verify_token_count(&pool, user_id).await;
+    let response = client
+        .post_json("/api/auth/resend-verification", json!({}))
+        .await;
+    assert_eq!(response.status, StatusCode::NO_CONTENT);
+    assert_eq!(job_count(&pool).await, jobs_before);
+    assert_eq!(
+        email_verify_token_count(&pool, user_id).await,
+        tokens_before
+    );
+}
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn resend_verification_unauthenticated_is_401(pool: PgPool) {
+    let app = TestApp::new(pool);
+    let mut client = app.client();
+    let response = client
+        .post_json("/api/auth/resend-verification", json!({}))
+        .await;
+    assert_eq!(response.status, StatusCode::UNAUTHORIZED);
 }

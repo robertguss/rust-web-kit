@@ -288,6 +288,31 @@ export type RegisterResponses = {
 
 export type RegisterResponse = RegisterResponses[keyof RegisterResponses];
 
+export type ResendVerificationData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/auth/resend-verification';
+};
+
+export type ResendVerificationErrors = {
+    /**
+     * Not authenticated
+     */
+    401: Problem;
+};
+
+export type ResendVerificationError = ResendVerificationErrors[keyof ResendVerificationErrors];
+
+export type ResendVerificationResponses = {
+    /**
+     * Verification email sent or already verified
+     */
+    204: void;
+};
+
+export type ResendVerificationResponse = ResendVerificationResponses[keyof ResendVerificationResponses];
+
 export type ResetPasswordData = {
     body: ResetPasswordBody;
     path?: never;

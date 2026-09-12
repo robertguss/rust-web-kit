@@ -51,6 +51,7 @@ Run `just check` before declaring work done. Run `just ci` before a PR.
 - **utoipa.** Every handler has `#[utoipa::path]`. Paths are relative to the `/api` mount (`servers[0].url = "/api"`). Register the handler with `utoipa_axum::routes!` and add new schemas to `ApiDoc`.
 - **Generated client.** `just gen` writes `apps/web/openapi.json` and `apps/web/src/api/generated/`. Never edit `apps/web/src/api/generated/` by hand. Hand-written files: `client.ts`, `problem.ts`, `form-errors.ts`, `query.ts`.
 - **Ownership.** Missing rows and other users' rows are `AppError::NotFound` (404), not 403.
+- **Email verification.** Opt-in per route via `RequireVerified`. Login and session do not require a verified address.
 - **Tests.** API: `#[sqlx::test]` + `crates/api/tests/common` (`TestApp`, cookie client, `drain_jobs`). Web: Vitest. Do not `#[ignore]` tests to go green.
 - **Files.** Small, one job, short module docs. Edition 2024. Clippy pedantic (`-D warnings`). TypeScript strict. Biome clean.
 

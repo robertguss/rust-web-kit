@@ -18,6 +18,12 @@ pub struct CurrentUser(pub Option<User>);
 /// Logged-in user; missing session is 401.
 pub struct RequireAuth(pub User);
 
+/// Logged-in user whose email is verified; unverified is 403.
+///
+/// Opt-in per route. Do not swap this in for [`RequireAuth`] on existing
+/// handlers — login and session stay available without a verified address.
+pub struct RequireVerified(pub User);
+
 impl CurrentUser {
     /// Persist `user_id` on the session after rotating the session id.
     pub async fn login(session: &Session, user_id: Uuid) -> Result<(), AppError> {
@@ -73,5 +79,20 @@ impl FromRequestParts<AppState> for RequireAuth {
             CurrentUser(Some(user)) => Ok(Self(user)),
             CurrentUser(None) => Err(AppError::Unauthorized),
         }
+    }
+}
+
+impl FromRequestParts<AppState> for RequireVerified {
+    type Rejection = AppError;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
+        let RequireAuth(user) = RequireAuth::from_request_parts(parts, state).await?;
+        if user.email_verified_at.is_none() {
+            return Err(AppError::EmailNotVerified);
+        }
+        Ok(Self(user))
     }
 }

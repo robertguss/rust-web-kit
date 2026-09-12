@@ -7,6 +7,6 @@ pub mod service;
 pub mod session_store;
 pub mod tokens;
 
-pub use extract::{CurrentUser, RequireAuth};
+pub use extract::{CurrentUser, RequireAuth, RequireVerified};
 pub use oauth::{OauthProfile, Provider};
 pub use session_store::PostgresSessionStore;
