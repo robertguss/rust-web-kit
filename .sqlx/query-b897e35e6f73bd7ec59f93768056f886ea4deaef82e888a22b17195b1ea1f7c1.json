@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO jobs (id, kind, payload, run_at, max_attempts)\n        VALUES ($1, $2, $3, now(), $4)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Jsonb",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b897e35e6f73bd7ec59f93768056f886ea4deaef82e888a22b17195b1ea1f7c1"
+}

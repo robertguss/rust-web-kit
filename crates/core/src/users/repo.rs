@@ -1,13 +1,20 @@
 //! User persistence.
 
 use chrono::{DateTime, Utc};
-use sqlx::PgPool;
+use sqlx::{Executor, PgPool, Postgres};
 use uuid::Uuid;
 
 use super::model::User;
 
 /// Insert a password user.
-pub async fn create(pool: &PgPool, email: &str, password_hash: &str) -> Result<User, sqlx::Error> {
+pub async fn create<'e, E>(
+    executor: E,
+    email: &str,
+    password_hash: &str,
+) -> Result<User, sqlx::Error>
+where
+    E: Executor<'e, Database = Postgres>,
+{
     let id = Uuid::now_v7();
     sqlx::query_as!(
         User,
@@ -20,7 +27,7 @@ pub async fn create(pool: &PgPool, email: &str, password_hash: &str) -> Result<U
         email,
         password_hash,
     )
-    .fetch_one(pool)
+    .fetch_one(executor)
     .await
 }
 

@@ -9,6 +9,7 @@ use axum::body::{Body, to_bytes};
 use axum::http::{Request, StatusCode, header};
 use rwk_core::AppState;
 use rwk_core::config::Config;
+use rwk_core::jobs::Worker;
 use rwk_core::mail::RecordingMailer;
 use sqlx::PgPool;
 use tower::ServiceExt;
@@ -17,16 +18,18 @@ use tower::ServiceExt;
 pub struct TestApp {
     pub router: Router,
     pub mail: RecordingMailer,
+    pub pool: PgPool,
 }
 
 impl TestApp {
     pub fn new(pool: PgPool) -> Self {
         let config = Config::for_tests();
         let mail = RecordingMailer::new();
-        let state = AppState::new(config, pool, Arc::new(mail.clone()));
+        let state = AppState::new(config, pool.clone(), Arc::new(mail.clone()));
         Self {
             router: rwk_api::app(state),
             mail,
+            pool,
         }
     }
 
@@ -37,7 +40,13 @@ impl TestApp {
         }
     }
 
-    pub fn last_token(&self, kind: &str) -> String {
+    pub async fn drain_jobs(&self) {
+        let worker = Worker::new(self.pool.clone(), Arc::new(self.mail.clone()));
+        worker.process_available().await.expect("drain jobs");
+    }
+
+    pub async fn last_token(&self, kind: &str) -> String {
+        self.drain_jobs().await;
         let messages = self.mail.messages();
         let url = messages
             .iter()

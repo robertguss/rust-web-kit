@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO jobs (id, kind, payload, run_at, max_attempts)\n        VALUES ($1, $2, $3, now(), $4)\n        ON CONFLICT (kind) WHERE completed_at IS NULL AND kind = 'cleanup_expired_tokens'\n        DO NOTHING\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Jsonb",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "15a22e273e036826bf6a95edba7b3386f3872bc63a0e9ac1790c1d382c86e328"
+}

@@ -35,7 +35,6 @@ pub async fn register(
     let user = service::register(
         state.db(),
         &session,
-        state.mailer(),
         &state.config().app_url,
         &body.email,
         &body.password,
@@ -125,13 +124,7 @@ pub async fn forgot_password(
     Json(body): Json<EmailBody>,
 ) -> Result<StatusCode, AppError> {
     body.validate()?;
-    service::forgot_password(
-        state.db(),
-        state.mailer(),
-        &state.config().app_url,
-        &body.email,
-    )
-    .await?;
+    service::forgot_password(state.db(), &state.config().app_url, &body.email).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 

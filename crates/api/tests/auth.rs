@@ -104,7 +104,7 @@ async fn verify_email_happy_path(pool: PgPool) {
     client
         .post_json("/api/auth/register", creds("v@example.com"))
         .await;
-    let token = app.last_token("verify");
+    let token = app.last_token("verify").await;
     let response = client
         .post_json("/api/auth/verify-email", json!({ "token": token }))
         .await;
@@ -156,7 +156,7 @@ async fn reset_password_happy_and_expired(pool: PgPool) {
         .await;
     assert_eq!(unknown.status, StatusCode::NO_CONTENT);
 
-    let token = app.last_token("reset");
+    let token = app.last_token("reset").await;
     let reset = client
         .post_json(
             "/api/auth/reset-password",

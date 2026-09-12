@@ -9,7 +9,8 @@ use clap::Parser;
 use rwk_core::AppState;
 use rwk_core::config::Config;
 use rwk_core::db;
-use rwk_core::mail::LogMailer;
+use rwk_core::jobs::{self, Worker};
+use rwk_core::mail::{Mailer, SmtpMailer};
 use rwk_core::telemetry;
 
 #[derive(Parser, Debug)]
@@ -18,6 +19,12 @@ struct Args {
     /// Write the HTTP API spec to PATH and exit (does not load config or touch the database).
     #[arg(long, value_name = "PATH")]
     export_openapi: Option<PathBuf>,
+    /// Serve HTTP only (do not run the job worker).
+    #[arg(long, conflicts_with = "worker_only")]
+    api_only: bool,
+    /// Run the job worker only (do not serve HTTP).
+    #[arg(long, conflicts_with = "api_only")]
+    worker_only: bool,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -30,7 +37,7 @@ fn main() -> anyhow::Result<()> {
         .enable_all()
         .build()
         .context("tokio runtime")?
-        .block_on(serve())
+        .block_on(run(args))
 }
 
 fn export_openapi(path: &std::path::Path) -> anyhow::Result<()> {
@@ -47,7 +54,7 @@ fn export_openapi(path: &std::path::Path) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn serve() -> anyhow::Result<()> {
+async fn run(args: Args) -> anyhow::Result<()> {
     let config = Config::from_env().context("load config")?;
     telemetry::init(&config).context("init tracing")?;
 
@@ -60,8 +67,34 @@ async fn serve() -> anyhow::Result<()> {
         db::run_migrations(&pool).await.context("run migrations")?;
     }
 
-    let addr = config.listen_addr().context("parse listen address")?;
-    let state = AppState::new(config, pool, Arc::new(LogMailer));
+    let mailer: Arc<dyn Mailer> =
+        Arc::new(SmtpMailer::from_config(&config.mail).context("smtp mailer")?);
+    let state = AppState::new(config, pool.clone(), Arc::clone(&mailer));
+
+    if args.worker_only {
+        tracing::info!("running worker only");
+        return jobs::run(Worker::new(pool, mailer)).await;
+    }
+
+    let worker = if args.api_only {
+        None
+    } else {
+        tracing::info!("starting job worker");
+        Some(tokio::spawn(jobs::run(Worker::new(pool, mailer))))
+    };
+
+    let result = serve_http(state).await;
+    if let Some(handle) = worker {
+        handle.abort();
+    }
+    result
+}
+
+async fn serve_http(state: AppState) -> anyhow::Result<()> {
+    let addr = state
+        .config()
+        .listen_addr()
+        .context("parse listen address")?;
     let app = rwk_api::app(state);
 
     tracing::info!("listening on {addr}");

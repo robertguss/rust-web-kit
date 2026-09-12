@@ -1,10 +1,11 @@
-//! Shared Axum state. Jobs remain a placeholder until the jobs phase.
+//! Shared Axum state.
 
 use std::sync::Arc;
 
 use sqlx::PgPool;
 
 use crate::config::Config;
+use crate::jobs::JobQueue;
 use crate::mail::Mailer;
 
 /// Cloneable process state with `Arc` internals.
@@ -17,22 +18,19 @@ struct Inner {
     config: Config,
     db: PgPool,
     mailer: Arc<dyn Mailer>,
-    jobs: JobsPlaceholder,
+    jobs: JobQueue,
 }
-
-/// Filled in by the jobs phase.
-#[derive(Debug, Default, Clone)]
-pub struct JobsPlaceholder;
 
 impl AppState {
     /// Build state from loaded config, a live pool, and a mailer.
     pub fn new(config: Config, db: PgPool, mailer: Arc<dyn Mailer>) -> Self {
+        let jobs = JobQueue::new(db.clone());
         Self {
             inner: Arc::new(Inner {
                 config,
                 db,
                 mailer,
-                jobs: JobsPlaceholder,
+                jobs,
             }),
         }
     }
@@ -45,11 +43,11 @@ impl AppState {
         &self.inner.db
     }
 
-    pub fn mailer(&self) -> &dyn Mailer {
-        self.inner.mailer.as_ref()
+    pub fn mailer(&self) -> Arc<dyn Mailer> {
+        Arc::clone(&self.inner.mailer)
     }
 
-    pub fn jobs(&self) -> &JobsPlaceholder {
+    pub fn jobs(&self) -> &JobQueue {
         &self.inner.jobs
     }
 }

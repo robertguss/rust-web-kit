@@ -5,7 +5,8 @@ use sqlx::PgPool;
 use tower_sessions::Session;
 
 use crate::AppError;
-use crate::mail::Mailer;
+use crate::jobs::{self, Job};
+use crate::mail::EmailTemplate;
 use crate::users::model::User;
 use crate::users::{repo, service as users};
 
@@ -14,10 +15,11 @@ use super::password::{DUMMY_PASSWORD_HASH, hash_password, verify_password};
 use super::tokens::{self, AuthTokenKind};
 
 /// Register a password user, issue a verify token, and start a session.
+///
+/// The user row, verify token, and `SendEmail` job are written in one transaction.
 pub async fn register(
     pool: &PgPool,
     session: &Session,
-    mailer: &dyn Mailer,
     app_url: &str,
     email: &str,
     password: &str,
@@ -26,19 +28,22 @@ pub async fn register(
         return Err(AppError::Conflict);
     }
     let password_hash = hash_password(password)?;
-    let user = users::create(pool, email, &password_hash).await?;
+    let mut tx = pool.begin().await?;
+    let user = repo::create(&mut *tx, email, &password_hash).await?;
     let token = tokens::issue(
-        pool,
+        &mut *tx,
         user.id,
         AuthTokenKind::EmailVerify,
         tokens::verify_ttl(),
     )
     .await?;
     let url = format!("{app_url}/verify-email?token={}", token.plaintext);
-    mailer
-        .send_verify_email(&user.email, &url)
-        .await
-        .map_err(AppError::Internal)?;
+    jobs::enqueue(
+        &mut *tx,
+        Job::send_email(user.email.clone(), EmailTemplate::VerifyEmail, url),
+    )
+    .await?;
+    tx.commit().await?;
     CurrentUser::login(session, user.id).await?;
     Ok(user)
 }
@@ -75,28 +80,28 @@ pub async fn verify_email(pool: &PgPool, token: &str) -> Result<(), AppError> {
     Ok(())
 }
 
-/// Always succeeds. Sends a reset link only when the email exists.
-pub async fn forgot_password(
-    pool: &PgPool,
-    mailer: &dyn Mailer,
-    app_url: &str,
-    email: &str,
-) -> Result<(), AppError> {
+/// Always succeeds. Enqueues a reset email only when the email exists.
+///
+/// Token insert and `SendEmail` share one transaction.
+pub async fn forgot_password(pool: &PgPool, app_url: &str, email: &str) -> Result<(), AppError> {
     let Some(user) = users::find_by_email(pool, email).await? else {
         return Ok(());
     };
+    let mut tx = pool.begin().await?;
     let token = tokens::issue(
-        pool,
+        &mut *tx,
         user.id,
         AuthTokenKind::PasswordReset,
         tokens::reset_ttl(),
     )
     .await?;
     let url = format!("{app_url}/reset-password?token={}", token.plaintext);
-    mailer
-        .send_password_reset(&user.email, &url)
-        .await
-        .map_err(AppError::Internal)?;
+    jobs::enqueue(
+        &mut *tx,
+        Job::send_email(user.email.clone(), EmailTemplate::PasswordReset, url),
+    )
+    .await?;
+    tx.commit().await?;
     Ok(())
 }
 

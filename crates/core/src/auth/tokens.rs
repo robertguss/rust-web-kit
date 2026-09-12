@@ -1,11 +1,9 @@
 //! Random 32-byte auth tokens stored as SHA-256 hashes.
-//!
-//! TODO(phase-5): `CleanupExpiredTokens` must also `DELETE FROM sessions WHERE expiry_date < now()`.
 
 use chrono::{Duration, Utc};
 use rand::Rng;
 use sha2::{Digest, Sha256};
-use sqlx::PgPool;
+use sqlx::{Executor, PgPool, Postgres};
 use uuid::Uuid;
 
 use crate::AppError;
@@ -25,12 +23,15 @@ pub struct IssuedToken {
 }
 
 /// Persist a token and return the plaintext to put in a link.
-pub async fn issue(
-    pool: &PgPool,
+pub async fn issue<'e, E>(
+    executor: E,
     user_id: Uuid,
     kind: AuthTokenKind,
     ttl: Duration,
-) -> Result<IssuedToken, AppError> {
+) -> Result<IssuedToken, AppError>
+where
+    E: Executor<'e, Database = Postgres>,
+{
     let issued = generate();
     let id = Uuid::now_v7();
     let expires_at = Utc::now() + ttl;
@@ -45,7 +46,7 @@ pub async fn issue(
         issued.hash,
         expires_at,
     )
-    .execute(pool)
+    .execute(executor)
     .await?;
     Ok(issued)
 }

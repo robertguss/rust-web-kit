@@ -1,9 +1,10 @@
-//! Shared library for rwk: config, database, errors, auth, users, projects, telemetry.
+//! Shared library for rwk: config, database, errors, auth, users, projects, jobs, mail, telemetry.
 
 pub mod auth;
 pub mod config;
 pub mod db;
 pub mod error;
+pub mod jobs;
 pub mod mail;
 pub mod projects;
 pub mod state;
