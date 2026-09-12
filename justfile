@@ -2,6 +2,8 @@
 set dotenv-load := false
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
+export DATABASE_URL := env("DATABASE_URL", "postgres://rwk:rwk@localhost:5432/rwk")
+
 # List recipes.
 default:
     @just --list
@@ -41,17 +43,17 @@ db-up:
 db-down:
     docker compose down
 
-# Apply SQLx migrations (Phase 2).
+# Apply SQLx migrations.
 migrate:
-    @echo "TODO: just migrate (Phase 2)"
+    sqlx migrate run --source migrations
 
-# Create a new SQLx migration (Phase 2).
+# Create a new SQLx migration.
 migrate-new NAME:
-    @echo "TODO: just migrate-new {{NAME}} (Phase 2)"
+    sqlx migrate add --source migrations --simple {{NAME}}
 
-# Refresh the committed .sqlx cache (Phase 2).
+# Refresh the committed .sqlx offline cache.
 sqlx-prepare:
-    @echo "TODO: just sqlx-prepare (Phase 2)"
+    cargo sqlx prepare --workspace -- --all-targets
 
 # Export OpenAPI and generate the TS client (Phase 4).
 gen:
@@ -63,13 +65,14 @@ check:
     cargo clippy --all-targets -- -D warnings
     pnpm --dir apps/web typecheck
     pnpm --dir apps/web lint
+    cargo sqlx prepare --check --workspace -- --all-targets
 
 # Run API and web tests.
 test: test-api test-web
 
 # Rust tests.
 test-api:
-    cargo nextest run --workspace --no-tests=pass
+    cargo nextest run --workspace
 
 # Frontend unit tests (Phase 6).
 test-web:

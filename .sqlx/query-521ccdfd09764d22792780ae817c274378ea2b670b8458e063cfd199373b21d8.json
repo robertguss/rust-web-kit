@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT extname FROM pg_extension WHERE extname = 'citext'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "extname",
+        "type_info": "Name",
+        "origin": {
+          "Table": {
+            "table": "pg_extension",
+            "name": "extname"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "521ccdfd09764d22792780ae817c274378ea2b670b8458e063cfd199373b21d8"
+}

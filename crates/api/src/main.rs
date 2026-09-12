@@ -1,45 +1,60 @@
 //! rwk HTTP API binary.
 
-use std::net::SocketAddr;
-
+use anyhow::Context;
+use axum::Router;
+use axum::http::Request;
 use axum::routing::get;
-use axum::{Json, Router};
-use serde::Serialize;
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
+use rwk_core::AppState;
+use rwk_core::config::Config;
+use rwk_core::db;
+use rwk_core::telemetry;
+use tower_http::request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer};
+use tower_http::trace::TraceLayer;
 
-/// Liveness payload for `/api/health`.
-#[derive(Serialize)]
-struct Health {
-    status: &'static str,
-}
-
-async fn health() -> Json<Health> {
-    Json(Health { status: "ok" })
-}
-
-fn init_tracing() {
-    tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
-        )
-        .with(tracing_subscriber::fmt::layer())
-        .init();
-}
+mod health;
 
 #[tokio::main]
-async fn main() {
-    init_tracing();
+async fn main() -> anyhow::Result<()> {
+    let config = Config::from_env().context("load config")?;
+    telemetry::init(&config).context("init tracing")?;
 
     tracing::info!(version = rwk_core::VERSION, "starting rwk-api");
 
-    let app = Router::new().route("/api/health", get(health));
-    let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
-    tracing::info!("listening on {addr}");
+    let pool = db::connect(&config.database)
+        .await
+        .context("connect database")?;
+    if config.run_migrations {
+        db::run_migrations(&pool).await.context("run migrations")?;
+    }
 
+    let addr = config.listen_addr().context("parse listen address")?;
+    let state = AppState::new(config, pool);
+
+    let app = Router::new()
+        .route("/api/health", get(health::health))
+        .layer(
+            TraceLayer::new_for_http().make_span_with(|request: &Request<_>| {
+                let request_id = request
+                    .headers()
+                    .get("x-request-id")
+                    .and_then(|value| value.to_str().ok())
+                    .unwrap_or("");
+                tracing::info_span!(
+                    "request",
+                    method = %request.method(),
+                    uri = %request.uri(),
+                    request_id,
+                )
+            }),
+        )
+        .layer(PropagateRequestIdLayer::x_request_id())
+        .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
+        .with_state(state);
+
+    tracing::info!("listening on {addr}");
     let listener = tokio::net::TcpListener::bind(addr)
         .await
-        .expect("bind 0.0.0.0:8080");
-    axum::serve(listener, app).await.expect("server");
+        .with_context(|| format!("bind {addr}"))?;
+    axum::serve(listener, app).await.context("server")?;
+    Ok(())
 }
