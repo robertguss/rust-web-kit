@@ -34,7 +34,7 @@ OAuth (Google / GitHub) is on when both `RWK_OAUTH__<PROVIDER>_CLIENT_ID` and `_
 | Concern | Choice |
 |---|---|
 | API | Axum, tokio, utoipa + Scalar |
-| DB | PostgreSQL 17, SQLx (offline `.sqlx/` committed) |
+| DB | PostgreSQL 18, SQLx (offline `.sqlx/` committed) |
 | Auth | argon2 passwords, tower-sessions cookie, Google/GitHub OAuth (PKCE) |
 | Jobs | in-tree Postgres queue (transactional enqueue) |
 | Email | lettre + askama; Mailpit locally |

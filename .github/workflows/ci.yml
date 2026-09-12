@@ -14,7 +14,7 @@ jobs:
       CI: true
     services:
       postgres:
-        image: postgres:17
+        image: postgres:18
         env:
           POSTGRES_DB: rwk
           POSTGRES_USER: rwk

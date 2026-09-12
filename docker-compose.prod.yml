@@ -19,13 +19,16 @@ name: rwk-prod
 
 services:
   postgres:
-    image: postgres:17
+    image: postgres:18
     environment:
       POSTGRES_DB: rwk
       POSTGRES_USER: rwk
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rwk}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # Postgres 18 stores data in /var/lib/postgresql/<major>/docker and
+      # declares /var/lib/postgresql as the volume. Do not use the pre-18
+      # /var/lib/postgresql/data path here.
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U rwk -d rwk"]
       interval: 5s

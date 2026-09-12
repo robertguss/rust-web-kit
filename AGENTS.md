@@ -29,7 +29,7 @@ Read `docs/slices/projects.md` before adding a CRUD resource. Read `docs/slices/
 | Recipe | What it does |
 |---|---|
 | `setup` | `mise install`, JS deps, `hk install` |
-| `db-up` / `db-down` | Postgres 17 + Mailpit |
+| `db-up` / `db-down` | Postgres 18 + Mailpit |
 | `dev` / `dev-api` / `dev-web` | API `:8080` + Vite `:5173` |
 | `migrate` / `migrate-new NAME` | SQLx migrations |
 | `sqlx-prepare` | Refresh committed `.sqlx/` |
