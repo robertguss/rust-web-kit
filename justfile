@@ -37,10 +37,19 @@ db-up:
     set -euo pipefail
     docker compose up -d
     # A first run initializes the cluster, which is slow on Docker Desktop.
+    # initdb starts a temporary server and restarts it, so pg_isready flips
+    # between accepting and rejecting. Probe once per tick and require two
+    # consecutive successes, so a transient reject does not end the wait.
+    ok=0
     for _ in $(seq 1 90); do
-      if docker compose exec -T postgres pg_isready -U rwk -d rwk >/dev/null 2>&1; then
-        docker compose exec -T postgres pg_isready -U rwk -d rwk
-        exit 0
+      if out=$(docker compose exec -T postgres pg_isready -U rwk -d rwk 2>&1); then
+        ok=$((ok + 1))
+        if [ "$ok" -ge 2 ]; then
+          echo "$out"
+          exit 0
+        fi
+      else
+        ok=0
       fi
       sleep 1
     done
